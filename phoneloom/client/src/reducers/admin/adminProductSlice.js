@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { clearProductCache } from '../../services/phoneServices';
 
 // Fetch all phones
 export const fetchAdminPhones = createAsyncThunk(
@@ -135,6 +136,7 @@ const adminProductSlice = createSlice({
             .addCase(addAdminPhone.fulfilled, (state, action) => {
                 state.loading = false;
                 state.phones.push(action.payload);
+                clearProductCache(); // Clear cache so users see new product immediately
             })
             .addCase(addAdminPhone.rejected, (state, action) => {
                 state.loading = false;
@@ -148,6 +150,7 @@ const adminProductSlice = createSlice({
             .addCase(deleteAdminPhone.fulfilled, (state, action) => {
                 state.loading = false;
                 state.phones = state.phones.filter(phone => phone._id !== action.payload);
+                clearProductCache(); // Clear cache so users see deletion immediately
             })
             .addCase(deleteAdminPhone.rejected, (state, action) => {
                 state.loading = false;
@@ -164,6 +167,7 @@ const adminProductSlice = createSlice({
                 if (index !== -1) {
                     state.phones[index] = action.payload;
                 }
+                clearProductCache(); // Clear cache so users see updates immediately
             })
             .addCase(updateAdminPhone.rejected, (state, action) => {
                 state.loading = false;
