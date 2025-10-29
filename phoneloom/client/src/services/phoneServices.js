@@ -5,11 +5,17 @@ let cachedProducts = null;
 let lastFetchTime = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
-export const fetchProducts = async () => {
+// Clear cache function - call this after admin operations
+export const clearProductCache = () => {
+    cachedProducts = null;
+    lastFetchTime = null;
+};
+
+export const fetchProducts = async (forceRefresh = false) => {
     const now = Date.now();
 
-    // Return cached products if they exist and are fresh
-    if (cachedProducts && lastFetchTime && (now - lastFetchTime) < CACHE_DURATION) {
+    // Force refresh if requested or cache expired
+    if (!forceRefresh && cachedProducts && lastFetchTime && (now - lastFetchTime) < CACHE_DURATION) {
         return cachedProducts;
     }
 
