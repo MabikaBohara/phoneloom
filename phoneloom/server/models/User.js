@@ -15,6 +15,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    resetPasswordToken: { type: String },
+    resetPasswordExpire: { type: Date }
+,
+
     role: {
         type: String,
         enum: ['admin', 'customer'],
@@ -23,7 +27,12 @@ const userSchema = new mongoose.Schema({
     avatar: {
         type: String
     },
-   
+    stripeCustomerId: {
+        type: String
+    },
+    defaultPaymentMethod: {
+        type: String
+    }
 }, { timestamps: true });
 
 // Hash password before saving
