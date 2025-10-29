@@ -5,6 +5,10 @@ const phoneSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  name: {
+    type: String,
+    required: true
+  },
   brand: {
     type: String,
     required: true
@@ -23,31 +27,38 @@ const phoneSchema = new mongoose.Schema({
   },
   storage: [{
     type: String,
-    required: true
+    required: false,
+    default: []
   }],
   colors: [{
     type: String,
-    required: true
+    required: false,
+    default: []
   }],
   batterySize: {
     type: String,
-    required: true
+    required: false,
+    default: ''
   },
   batteryType: {
     type: String,
-    required: true
+    required: false,
+    default: ''
   },
   ramSize: [{
     type: String,
-    required: true
+    required: false,
+    default: []
   }],
   displaySize: {
     type: String,
-    required: true
+    required: false,
+    default: ''
   },
   releaseDate: {
     type: Date,
-    required: true
+    required: false,
+    default: Date.now
   },
   image: {
     type: String,
@@ -56,15 +67,18 @@ const phoneSchema = new mongoose.Schema({
   },
   frontCamera: {
     type: String,
-    required: true
+    required: false,
+    default: ''
   },
   backCamera: {
     type: String,
-    required: true
+    required: false,
+    default: ''
   },
   os: {
     type: String,
-    required: true
+    required: false,
+    default: ''
   },
   stock: {
     type: Number,
