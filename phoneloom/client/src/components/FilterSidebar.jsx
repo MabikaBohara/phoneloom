@@ -18,7 +18,7 @@ const FilterSidebar = ({ products, filters, setFilters }) => {
             color: prev.color === color ? '' : color
         }));
     };
-
+// Handle price range change
     const handlePriceChange = (e) => {
         const { name, value } = e.target;
         setFilters(prev => ({
