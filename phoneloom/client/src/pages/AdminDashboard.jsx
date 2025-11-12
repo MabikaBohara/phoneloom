@@ -1,16 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { 
-  BarChart3, 
-  Package, 
-  ShoppingBag, 
-  Users, 
-  Plus,
-  DollarSign,
-  TrendingUp
-} from 'lucide-react';
+import { Package, Users, ShoppingCart, BarChart3, Plus } from 'lucide-react';
 import AdminOverview from '../components/admin/AdminOverview';
-
+import ManageProducts from '../components/admin/ManageProducts';
+import AllOrders from '../components/admin/AllOrders';
+import AddProduct from '../components/admin/AddProduct';
+import ProductDetails from '../components/admin/ProductDetails';
 
 const AdminDashboard = () => {
   const location = useLocation();
@@ -19,8 +14,8 @@ const AdminDashboard = () => {
   const sidebarItems = [
     { path: '/admin', label: 'Dashboard', icon: BarChart3 },
     { path: '/admin/products', label: 'Manage Products', icon: Package },
-    { path: '/admin/orders', label: 'All Orders', icon: ShoppingBag },
-    { path: '/admin/add-product', label: 'Add Product', icon: Plus },
+    { path: '/admin/products/add', label: 'Add Product', icon: Plus },
+    { path: '/admin/orders', label: 'All Orders', icon: ShoppingCart },
   ];
 
   return (
@@ -60,9 +55,9 @@ const AdminDashboard = () => {
           <Routes>
             <Route index element={<AdminOverview />} />
             <Route path="products" element={<ManageProducts />} />
+            <Route path="products/add" element={<AddProduct />} />
+            <Route path="products/:id" element={<ProductDetails />} />
             <Route path="orders" element={<AllOrders />} />
-            <Route path="add-product" element={<AddProduct />} />
-            <Route path="products/:_id" element={<ProductDetails />} />
           </Routes>
         </div>
       </div>
