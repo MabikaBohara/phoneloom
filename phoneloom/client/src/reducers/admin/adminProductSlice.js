@@ -2,20 +2,7 @@ import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit'
 import axios from 'axios';
 import { clearProductCache } from '../../services/phoneServices';
 
-// Fetch all phones
-export const fetchAdminPhones = createAsyncThunk(
-    'adminProduct/fetchAdminPhones',
-    async (_, { rejectWithValue }) => {
-        try {
-            const response = await axios.get('/api/phones');
-            return response.data;
-        } catch (err) {
-            return rejectWithValue(err.response?.data?.msg || err.message);
-        }
-    }
-);
-
-// Add phone
+// Add new phone
 export const addAdminPhone = createAsyncThunk(
     'adminProduct/addAdminPhone',
     async (phoneData, { rejectWithValue }) => {
@@ -40,6 +27,19 @@ export const addAdminPhone = createAsyncThunk(
                     'Content-Type': 'multipart/form-data'
                 }
             });
+            return response.data;
+        } catch (err) {
+            return rejectWithValue(err.response?.data?.msg || err.message);
+        }
+    }
+);
+
+// Fetch all phones
+export const fetchAdminPhones = createAsyncThunk(
+    'adminProduct/fetchAdminPhones',
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await axios.get('/api/phones');
             return response.data;
         } catch (err) {
             return rejectWithValue(err.response?.data?.msg || err.message);
@@ -127,11 +127,6 @@ const adminProductSlice = createSlice({
             .addCase(fetchAdminPhones.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
-            })
-            // Add Phone
-            .addCase(addAdminPhone.pending, (state) => {
-                state.loading = true;
-                state.error = null;
             })
             .addCase(addAdminPhone.fulfilled, (state, action) => {
                 state.loading = false;
