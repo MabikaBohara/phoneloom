@@ -6,25 +6,85 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const multer = require('multer');
 const { storage } = require('../config/cloudinary');
-const upload = multer({ storage });
+
+// Configure multer for Cloudinary uploads
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept only image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
+
+// Error handling middleware for multer
+const handleMulterError = (err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ msg: 'File too large. Maximum size is 10MB.' });
+        }
+        return res.status(400).json({ msg: 'File upload error: ' + err.message });
+    }
+    if (err) {
+        return res.status(400).json({ msg: 'File upload error: ' + err.message });
+    }
+    next();
+};
 
 // ============ Phone Admin Routes ============
 // Create phone (Admin only)
-router.post('/phones', [authMiddleware, adminMiddleware, upload.single('image')], async (req, res) => {
+router.post('/phones', [authMiddleware, adminMiddleware, upload.single('image'), handleMulterError], async (req, res) => {
     try {
-        const { name, brand, description, price, stock, colors, storages, 
-            rams, batterySize, batteryType, displaySize, releaseDate, 
-            frontCamera, backCamera, os } = req.body;
+        console.log('📱 Admin creating phone...');
+        console.log('Request body:', req.body);
+        console.log('Request file:', req.file);
+
+        // Check for multer errors
+        if (req.fileValidationError) {
+            return res.status(400).json({ 
+                msg: 'File validation error: ' + req.fileValidationError 
+            });
+        }
+
+        // Validate required fields
+        if (!name || !brand || !description || !price || !stock) {
+            return res.status(400).json({ 
+                msg: 'Missing required fields: name, brand, description, price, stock are required' 
+            });
+        }
 
         // Parse arrays from JSON strings if necessary
-        const parsedColors = typeof colors === 'string' ? JSON.parse(colors) : colors || [];
-        const parsedStorages = typeof storages === 'string' ? JSON.parse(storages) : storages || [];
-        const parsedRams = typeof rams === 'string' ? JSON.parse(rams) : rams || [];
+        let parsedColors = [];
+        let parsedStorages = [];
+        let parsedRams = [];
+
+        try {
+            parsedColors = typeof colors === 'string' ? JSON.parse(colors) : colors || [];
+            parsedStorages = typeof storageOptions === 'string' ? JSON.parse(storageOptions) : storageOptions || [];
+            parsedRams = typeof ramSize === 'string' ? JSON.parse(ramSize) : ramSize || [];
+        } catch (parseError) {
+            console.error('Error parsing JSON arrays:', parseError);
+            return res.status(400).json({ 
+                msg: 'Invalid JSON format for colors, storage, or ramSize' 
+            });
+        }
 
         const image = req.file ? req.file.path : null;
         if (!image) {
             return res.status(400).json({ msg: 'Image is required' });
         }
+
+        console.log('Creating phone with data:', {
+            name, brand, description, price, stock,
+            colors: parsedColors, storage: parsedStorages, ramSize: parsedRams,
+            image
+        });
 
         const phone = new Phone({
             id: name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now(), // Generate unique ID
@@ -32,33 +92,41 @@ router.post('/phones', [authMiddleware, adminMiddleware, upload.single('image')]
             brand,
             model: name,
             description,
-            price,
-            stock,
+            price: parseFloat(price),
+            stock: parseInt(stock),
             colors: parsedColors,
             storage: parsedStorages,
             ramSize: parsedRams,
             batterySize,
             batteryType,
             displaySize,
-            releaseDate,
+            releaseDate: releaseDate ? new Date(releaseDate) : new Date(),
             image,
             frontCamera,
             backCamera,
             os
         });
 
+        console.log('Saving phone to database...');
         await phone.save();
+        console.log(' Phone saved successfully:', phone._id);
+        
         res.json(phone);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+        console.error(' Error creating phone:', err);
+        console.error('Error stack:', err.stack);
+        res.status(500).json({ 
+            msg: 'Server error', 
+            error: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
     }
 });
 
 // Update phone (Admin only)
-router.put('/phones/:id', [authMiddleware, adminMiddleware, upload.single('image')], async (req, res) => {
+router.put('/phones/:id', [authMiddleware, adminMiddleware, upload.single('image'), handleMulterError], async (req, res) => {
     try {
-        const { name, model, description, price, brand, stock, colors, storage, ramSize, batterySize, batteryType, displaySize, releaseDate, frontCamera, backCamera, os } = req.body;
+        const { name, model, description, price, brand, stock, colors, storage: storageOptions, ramSize, batterySize, batteryType, displaySize, releaseDate, frontCamera, backCamera, os } = req.body;
 
         let phone = await Phone.findById(req.params.id);
         if (!phone) {
@@ -67,7 +135,7 @@ router.put('/phones/:id', [authMiddleware, adminMiddleware, upload.single('image
 
         // Parse arrays from JSON strings if necessary
         const parsedColors = typeof colors === 'string' ? JSON.parse(colors) : colors;
-        const parsedStorage = typeof storage === 'string' ? JSON.parse(storage) : storage;
+        const parsedStorage = typeof storageOptions === 'string' ? JSON.parse(storageOptions) : storageOptions;
         const parsedRamSize = typeof ramSize === 'string' ? JSON.parse(ramSize) : ramSize;
 
         const updateData = {
@@ -128,7 +196,7 @@ router.get('/orders', [authMiddleware, adminMiddleware], async (req, res) => {
     try {
         const orders = await Order.find({})
             .populate('user', 'name email')
-            .populate('orderItems.phone', 'name brand');
+            .populate('orderItems.phone', 'name brand model');
         res.json(orders);
     } catch (err) {
         console.error(err.message);
@@ -141,7 +209,7 @@ router.get('/orders/:id', [authMiddleware, adminMiddleware], async (req, res) =>
     try {
         const order = await Order.findById(req.params.id)
             .populate('user', 'name email')
-            .populate('orderItems.phone', 'name brand');
+            .populate('orderItems.phone', 'name brand model');
         if (!order) {
             return res.status(404).json({ msg: 'Order not found' });
         }
@@ -164,7 +232,7 @@ router.put('/orders/:id/status', [authMiddleware, adminMiddleware], async (req, 
             req.params.id,
             { status },
             { new: true }
-        ).populate('user', 'name email').populate('orderItems.phone', 'name brand');
+        ).populate('user', 'name email').populate('orderItems.phone', 'name brand model');
 
         if (!order) {
             return res.status(404).json({ msg: 'Order not found' });
@@ -213,21 +281,23 @@ router.get('/stats/sales', [authMiddleware, adminMiddleware], async (req, res) =
 router.get('/stats/brands', [authMiddleware, adminMiddleware], async (req, res) => {
     try {
         const orders = await Order.find({}).populate('orderItems.phone', 'brand');
-        const brandSales = {};
+        const brandCounts = {};
 
         orders.forEach(order => {
             order.orderItems.forEach(item => {
-                const brand = item.phone.brand;
-                if (!brandSales[brand]) {
-                    brandSales[brand] = 0;
+                const brand = item.phone?.brand;
+                if (brand) {
+                    if (!brandCounts[brand]) {
+                        brandCounts[brand] = 0;
+                    }
+                    brandCounts[brand] += item.quantity;
                 }
-                brandSales[brand] += item.price * item.quantity;
             });
         });
 
-        const brandData = Object.keys(brandSales).map(brand => ({
+        const brandData = Object.keys(brandCounts).map(brand => ({
             brand,
-            sales: brandSales[brand]
+            count: brandCounts[brand]
         }));
 
         res.json(brandData);
@@ -249,3 +319,6 @@ router.get('/stats/users', [authMiddleware, adminMiddleware], async (req, res) =
 });
 
 module.exports = router;
+
+
+
